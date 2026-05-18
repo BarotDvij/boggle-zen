@@ -1,139 +1,153 @@
-/**
- * Play screen — the home. Clean board preview + start button.
- */
-import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
   Pressable,
-  StyleSheet,
   SafeAreaView,
-  ActivityIndicator,
-} from "react-native";
-import { useRouter } from "expo-router";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
-import { useTheme } from "@/theme";
-import { text } from "@/theme/typography";
-import { spring } from "@/theme/motion";
-import { rollBoard, type Board } from "@/game/board";
-import { loadDictionary } from "@/game/dictionary";
-import { solveBoard, buildValidSet } from "@/game/solver";
-import { useGameStore } from "@/store/game";
-import { useSettingsStore } from "@/store/settings";
-import { Tile } from "@/components/Tile";
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-export default function PlayScreen() {
-  const { palette, spacing, radius } = useTheme();
+import { useTheme } from '@/theme';
+import { text } from '@/theme/typography';
+import { useSettingsStore } from '@/store/settings';
+
+export default function PlayHome() {
   const router = useRouter();
-  const [previewBoard, setPreviewBoard] = useState<Board | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { palette, spacing, radius } = useTheme();
   const boardSize = useSettingsStore((s) => s.boardSize);
-  const durationSec = useSettingsStore((s) => s.roundSeconds);
-  const gameStore = useGameStore();
-  const btnScale = useSharedValue(1);
-
-  useEffect(() => {
-    setPreviewBoard(rollBoard(boardSize));
-  }, [boardSize]);
-
-  const btnStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: btnScale.value }],
-  }));
-
-  const handleStart = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-    btnScale.value = withSpring(0.95, spring.responsive);
-    try {
-      const board = rollBoard(boardSize);
-      const trie = await loadDictionary();
-      const solutions = solveBoard(board, trie);
-      const validSet = buildValidSet(solutions);
-      gameStore.begin(board, durationSec, validSet, solutions);
-      setPreviewBoard(board);
-      router.push("/game/active");
-    } finally {
-      setLoading(false);
-      btnScale.value = withSpring(1, spring.gentle);
-    }
-  }, [loading, boardSize, durationSec, gameStore, router]);
-
-  const size = boardSize;
-  const tileSize = 44;
+  const setBoardSize = useSettingsStore((s) => s.setBoardSize);
 
   return (
     <SafeAreaView
       style={[styles.root, { backgroundColor: palette.background }]}
     >
-      <View style={styles.header}>
-        <Text style={[text.hero, { color: palette.ink }]}>Boggle Zen</Text>
-        <Text style={[text.small, { color: palette.inkFaint, marginTop: 4 }]}>
-          {boardSize}×{boardSize} · {Math.floor(durationSec / 60)} min
-        </Text>
-      </View>
+      <View
+        style={[
+          styles.container,
+          { paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
+        ]}
+      >
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+            A QUIET ROUND OF
+          </Text>
+          <Text
+            style={[
+              text.hero,
+              { color: palette.ink, marginTop: spacing.sm },
+            ]}
+          >
+            Boggle Zen
+          </Text>
+          <Text
+            style={[
+              text.body,
+              {
+                color: palette.inkSoft,
+                marginTop: spacing.md,
+                maxWidth: 320,
+              },
+            ]}
+          >
+            Three minutes. One board. Find words at your own pace.
+          </Text>
+        </Animated.View>
 
-      {previewBoard && (
-        <View style={styles.preview} pointerEvents="none">
-          {Array.from({ length: size }).map((_, row) => (
-            <View key={row} style={[styles.row, { gap: 6 }]}>
-              {Array.from({ length: size }).map((_, col) => {
-                const index = row * size + col;
-                return (
-                  <Tile
-                    key={col}
-                    letter={previewBoard.letters[index] ?? ""}
-                    selected={false}
-                    inPath={false}
-                    size={tileSize}
-                  />
-                );
-              })}
-            </View>
-          ))}
+        <View style={styles.spacer} />
+
+        <View style={[styles.sizeRow, { gap: spacing.md, marginBottom: spacing.lg }]}>
+          <SizeChip
+            label="Classic · 4×4"
+            active={boardSize === 4}
+            onPress={() => setBoardSize(4)}
+          />
+          <SizeChip
+            label="Big · 5×5"
+            active={boardSize === 5}
+            onPress={() => setBoardSize(5)}
+          />
         </View>
-      )}
 
-      <Animated.View style={[styles.btnWrapper, btnStyle]}>
-        <Pressable
-          style={[
-            styles.startBtn,
-            {
-              backgroundColor: palette.accent,
-              borderRadius: radius.pill,
-              paddingHorizontal: spacing.xxxl,
-              paddingVertical: spacing.lg,
-            },
-          ]}
-          onPress={handleStart}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text
-              style={[
-                text.bodyMedium,
-                { color: "#fff", letterSpacing: 1, textTransform: "uppercase" },
-              ]}
-            >
-              New Game
+        <View style={{ paddingBottom: spacing.xxl }}>
+          <Pressable
+            onPress={() => router.push('/game/active')}
+            style={({ pressed }) => [
+              styles.primary,
+              {
+                backgroundColor: palette.sage,
+                borderRadius: radius.pill,
+                paddingVertical: spacing.md + 2,
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <Text style={[text.bodyMedium, { color: palette.surface }]}>
+              Begin
             </Text>
-          )}
-        </Pressable>
-      </Animated.View>
+          </Pressable>
+          <Text
+            style={[
+              text.small,
+              {
+                color: palette.inkFaint,
+                marginTop: spacing.md,
+                textAlign: 'center',
+              },
+            ]}
+          >
+            You can stop anytime. Nothing to chase.
+          </Text>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
+function SizeChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { palette, spacing, radius } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: spacing.md,
+          borderRadius: radius.pill,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: active ? 'transparent' : palette.divider,
+          backgroundColor: active ? palette.sage : palette.surface,
+          opacity: pressed ? 0.9 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          text.bodyMedium,
+          { color: active ? palette.surface : palette.ink },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: "center", justifyContent: "space-around" },
-  header: { alignItems: "center" },
-  preview: { gap: 6 },
-  row: { flexDirection: "row" },
-  btnWrapper: { alignItems: "center" },
-  startBtn: { alignItems: "center", justifyContent: "center" },
+  root: { flex: 1 },
+  container: { flex: 1 },
+  spacer: { flex: 1 },
+  sizeRow: { flexDirection: 'row' },
+  primary: { alignItems: 'center', justifyContent: 'center' },
+  eyebrow: { textTransform: 'uppercase' },
 });

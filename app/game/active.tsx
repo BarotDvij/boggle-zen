@@ -1,161 +1,242 @@
 /**
- * Active game screen — board + timer + word tray + found list.
+ * Active game screen.
+ *
+ * Rolls the board, builds the solver index, runs a 3-minute round, accepts
+ * drag/tap selections, validates against the precomputed solution set, and
+ * navigates to the calm review screen when time elapses.
+ *
+ * Nothing here shouts. The timer is a breathing ring. The score doesn't
+ * dance. Rejected words simply fade.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  SafeAreaView,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useGameStore } from "@/store/game";
-import { useProgressStore } from "@/store/progress";
-import { useTheme } from "@/theme";
-import { text } from "@/theme/typography";
-import { Board } from "@/components/Board";
-import { Timer } from "@/components/Timer";
-import { WordTray } from "@/components/WordTray";
-import { FoundList } from "@/components/FoundList";
-import { playSound } from "@/audio/soundpack";
-import { hapticSuccess } from "@/audio/haptics";
-import { saveGame } from "@/game/db";
-import { totalScore } from "@/game/scoring";
-import { maybeShowInterstitial } from "@/monetization/ads";
 
-export default function ActiveGameScreen() {
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+
+import { Board } from '@/components/Board';
+import { Timer } from '@/components/Timer';
+import { WordTray } from '@/components/WordTray';
+import { FoundList } from '@/components/FoundList';
+import { rollBoard } from '@/game/board';
+import { loadDictionary } from '@/game/dictionary';
+import { solveBoard, buildValidSet } from '@/game/solver';
+import { scoreWord, totalScore } from '@/game/scoring';
+import { saveGame } from '@/game/db';
+import { useGameStore } from '@/store/game';
+import { useSettingsStore } from '@/store/settings';
+import { useProgressStore } from '@/store/progress';
+import { hapticSuccess } from '@/audio/haptics';
+import { playSound } from '@/audio/soundpack';
+import { maybeShowInterstitial } from '@/monetization/ads';
+import { useTheme } from '@/theme';
+import { text } from '@/theme/typography';
+
+type LastResult = 'added' | 'duplicate' | 'invalid' | null;
+
+export default function ActiveGame() {
   const { palette, spacing } = useTheme();
   const router = useRouter();
+  const boardSize = useSettingsStore((s) => s.boardSize);
+  const roundSeconds = useSettingsStore((s) => s.roundSeconds);
+
   const game = useGameStore();
-  const progress = useProgressStore();
-  const [remaining, setRemaining] = useState<number>(0);
-  const [lastResult, setLastResult] = useState<
-    "added" | "duplicate" | "invalid" | null
-  >(null);
-  const [currentWord, setCurrentWord] = useState("");
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const endedRef = useRef(false);
+  const recordGame = useProgressStore((s) => s.recordGame);
 
-  const durationSec = game.durationSec;
-  const board = game.board;
-  const status = game.status;
+  const [loading, setLoading] = useState(true);
+  const [remaining, setRemaining] = useState(roundSeconds);
+  const [currentWord, setCurrentWord] = useState('');
+  const [lastResult, setLastResult] = useState<LastResult>(null);
+  const resultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ended = useRef(false);
 
+  // Roll + solve a fresh board on mount.
   useEffect(() => {
-    if (status !== "playing" || !game.endsAt) return;
-    const tick = () => {
-      const rem = Math.max(0, Math.ceil((game.endsAt! - Date.now()) / 1000));
-      setRemaining(rem);
-      if (rem === 0 && !endedRef.current) {
-        endedRef.current = true;
-        void finishGame();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const trie = await loadDictionary();
+        if (cancelled) return;
+        const board = rollBoard(boardSize);
+        const solutions = solveBoard(board, trie);
+        const valid = buildValidSet(solutions);
+        game.begin(board, roundSeconds, valid, solutions);
+        playSound('round_start');
+        setLoading(false);
+      } catch {
+        // If dictionary fails we still let them play with no validation —
+        // calmer than throwing a scary error.
+        const board = rollBoard(boardSize);
+        game.begin(board, roundSeconds, new Set(), new Map());
+        setLoading(false);
       }
-    };
-    tick();
-    timerRef.current = setInterval(tick, 500);
+    })();
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      cancelled = true;
+      if (resultTimer.current) clearTimeout(resultTimer.current);
+      game.reset();
     };
-  }, [status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const finishGame = useCallback(async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    game.end();
-    playSound("round_end");
+  // Tick the timer once per second.
+  useEffect(() => {
+    if (loading || ended.current) return;
+    const id = setInterval(() => {
+      setRemaining((r) => {
+        if (r <= 1) {
+          clearInterval(id);
+          endRound();
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
-    const words = game.foundWords;
-    const score = totalScore(words.map((w) => w.word));
-    const bestWord = words.reduce(
-      (best, w) => (w.word.length > best.length ? w.word : best),
-      ""
-    );
-
-    progress.recordGame(score, bestWord);
-
-    await saveGame({
-      playedAt: Date.now(),
-      boardSize: board?.size ?? 4,
-      score,
-      wordsFound: words.length,
-      totalWords: game.allSolutions?.size ?? 0,
-      bestWord,
-      durationSec,
-    });
-
-    await maybeShowInterstitial(score);
-    router.replace("/game/review");
-  }, [game, board, durationSec, progress, router]);
+  const flashResult = useCallback((result: LastResult) => {
+    setLastResult(result);
+    if (resultTimer.current) clearTimeout(resultTimer.current);
+    resultTimer.current = setTimeout(() => setLastResult(null), 900);
+  }, []);
 
   const handleWordAttempt = useCallback(
     (word: string, path: number[]) => {
-      const result = game.addFound(word.toUpperCase(), path);
-      setLastResult(result);
-      setCurrentWord("");
-      if (result === "added") {
+      const upper = word.toUpperCase();
+      setCurrentWord('');
+      const status = game.addFound(upper, path);
+      if (status === 'added') {
         hapticSuccess();
-        playSound("word_accept");
+        playSound('word_accept');
+        flashResult('added');
+      } else if (status === 'duplicate') {
+        playSound('word_reject');
+        flashResult('duplicate');
       } else {
-        playSound("word_reject");
+        playSound('word_reject');
+        flashResult('invalid');
       }
-      setTimeout(() => setLastResult(null), 1200);
     },
-    [game]
+    [flashResult, game]
   );
 
-  const handleQuit = () => {
-    Alert.alert("End game?", "Your progress will be saved.", [
-      { text: "Keep playing", style: "cancel" },
-      {
-        text: "End",
-        style: "destructive",
-        onPress: () => {
-          endedRef.current = true;
-          void finishGame();
-        },
-      },
-    ]);
-  };
+  const endRound = useCallback(async () => {
+    if (ended.current) return;
+    ended.current = true;
 
-  if (!board) return null;
+    const state = useGameStore.getState();
+    const score = totalScore(state.foundWords.map((w) => w.word));
+    const longest = state.foundWords.reduce(
+      (best, fw) => (fw.word.length > best.length ? fw.word : best),
+      ''
+    );
+
+    playSound('round_end');
+    state.end();
+    recordGame(score, longest);
+
+    // Persist quietly. Non-fatal if it fails.
+    try {
+      await saveGame({
+        playedAt: Date.now(),
+        boardSize: state.board?.size ?? boardSize,
+        score,
+        wordsFound: state.foundWords.length,
+        totalWords: state.allSolutions?.size ?? 0,
+        bestWord: longest,
+        durationSec: state.durationSec,
+      });
+    } catch {
+      // ignore
+    }
+
+    // Tasteful interstitial. Only every 4th game, never if Pro, never if 0.
+    try {
+      await maybeShowInterstitial(score);
+    } catch {
+      // ignore
+    }
+
+    router.replace('/game/review');
+  }, [boardSize, recordGame, router]);
+
+  const board = game.board;
+
+  if (loading || !board) {
+    return (
+      <SafeAreaView
+        style={[styles.root, { backgroundColor: palette.background }]}
+      >
+        <View style={styles.center}>
+          <Text
+            style={[
+              text.body,
+              { color: palette.inkSoft, textAlign: 'center' },
+            ]}
+          >
+            Rolling the dice…
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const score = totalScore(game.foundWords.map((w) => w.word));
 
   return (
-    <SafeAreaView
-      style={[styles.root, { backgroundColor: palette.background }]}
-    >
-      <View style={[styles.header, { paddingHorizontal: spacing.lg }]}>
-        <Pressable onPress={handleQuit}>
-          <Text style={[text.small, { color: palette.inkFaint }]}>End</Text>
+    <SafeAreaView style={[styles.root, { backgroundColor: palette.background }]}>
+      <View style={[styles.header, { paddingHorizontal: spacing.xl }]}>
+        <Pressable
+          hitSlop={10}
+          onPress={() => {
+            // Soft quit — confirm by simply ending the round.
+            endRound();
+          }}
+        >
+          <Text style={[text.small, { color: palette.inkFaint }]}>End round</Text>
         </Pressable>
-        <Timer
-          totalSeconds={durationSec}
-          remainingSeconds={remaining}
-          size={64}
-        />
+        <Timer totalSeconds={game.durationSec} remainingSeconds={remaining} />
         <Text style={[text.numeric, { color: palette.ink }]}>
-          {totalScore(game.foundWords.map((w) => w.word))}
+          {score}
         </Text>
       </View>
 
-      <WordTray currentWord={currentWord} lastResult={lastResult} />
+      <View style={styles.middle}>
+        <WordTray currentWord={currentWord} lastResult={lastResult} />
+        <View style={{ height: spacing.lg }} />
+        <Board
+          letters={board.letters}
+          size={board.size}
+          onWordAttempt={(word, path) => handleWordAttempt(word, path)}
+        />
+      </View>
 
-      <Board
-        letters={board.letters}
-        size={board.size}
-        onWordAttempt={handleWordAttempt}
-        disabled={status !== "playing"}
-      />
-
-      <FoundList words={game.foundWords} />
+      <View style={[styles.footer, { paddingBottom: spacing.lg }]}>
+        <FoundList words={game.foundWords} />
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: "space-around" },
+  root: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    paddingBottom: 16,
   },
+  middle: { flex: 1, justifyContent: 'center' },
+  footer: { paddingTop: 12 },
 });

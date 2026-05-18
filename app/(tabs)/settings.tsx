@@ -1,237 +1,268 @@
-/**
- * Settings screen — simple toggles, no dark patterns.
- */
-import React from "react";
 import {
-  View,
-  Text,
-  Switch,
   Pressable,
-  ScrollView,
   SafeAreaView,
-  Linking,
-} from "react-native";
-import { useRouter } from "expo-router";
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+
+import { useTheme } from '@/theme';
+import { text } from '@/theme/typography';
 import {
   useSettingsStore,
   type ThemePreference,
-  type BoardSize,
-} from "@/store/settings";
-import { usePro } from "@/store/pro";
-import { useTheme } from "@/theme";
-import { text } from "@/theme/typography";
-import { restorePurchases } from "@/monetization/revenuecat";
+  type Dictionary,
+} from '@/store/settings';
+import { usePro } from '@/store/pro';
+import { restorePurchases } from '@/monetization/revenuecat';
 
 export default function SettingsScreen() {
-  const { palette, spacing, radius } = useTheme();
+  const router = useRouter();
+  const { palette, spacing } = useTheme();
   const settings = useSettingsStore();
   const isPro = usePro();
-  const router = useRouter();
-
-  const rowStyle = {
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-  };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.background }}
-    >
+    <SafeAreaView style={[styles.root, { backgroundColor: palette.background }]}>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.xl, paddingBottom: 60 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing.xxl,
+          paddingBottom: spacing.xxl,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Text
-          style={[text.title, { color: palette.ink, marginBottom: spacing.xl }]}
-        >
-          Settings
-        </Text>
+        <View>
+          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+            SETTINGS
+          </Text>
+          <Text
+            style={[text.title, { color: palette.ink, marginTop: spacing.sm }]}
+          >
+            The small dials
+          </Text>
+        </View>
 
-        <SectionLabel label="Sound & Feel" palette={palette} spacing={spacing} />
-        <View style={rowStyle}>
-          <Text style={[text.body, { color: palette.ink }]}>Sound effects</Text>
-          <Switch
+        <View style={{ height: spacing.xl }} />
+
+        <Section title="Feel">
+          <Toggle
+            label="Sound"
             value={settings.soundEnabled}
-            onValueChange={settings.setSound}
-            trackColor={{ true: palette.accent, false: palette.divider }}
-            thumbColor="#fff"
+            onChange={settings.setSound}
           />
-        </View>
-        <View style={rowStyle}>
-          <Text style={[text.body, { color: palette.ink }]}>Haptics</Text>
-          <Switch
+          <Toggle
+            label="Haptics"
             value={settings.hapticsEnabled}
-            onValueChange={settings.setHaptics}
-            trackColor={{ true: palette.accent, false: palette.divider }}
-            thumbColor="#fff"
+            onChange={settings.setHaptics}
           />
-        </View>
+        </Section>
 
-        <SectionLabel label="Game" palette={palette} spacing={spacing} />
-        <SegmentRow
-          label="Board size"
-          options={[{ label: "4×4", value: 4 }, { label: "5×5", value: 5 }]}
-          selected={settings.boardSize}
-          onSelect={(v) => settings.setBoardSize(v as BoardSize)}
-          palette={palette}
-          spacing={spacing}
-          radius={radius}
-          rowStyle={rowStyle}
-        />
-        <SegmentRow
-          label="Round length"
-          options={[
-            { label: "2 min", value: 120 },
-            { label: "3 min", value: 180 },
-            { label: "4 min", value: 240 },
-          ]}
-          selected={settings.roundSeconds}
-          onSelect={(v) => settings.setRoundSeconds(Number(v))}
-          palette={palette}
-          spacing={spacing}
-          radius={radius}
-          rowStyle={rowStyle}
-        />
+        <Section title="Appearance">
+          <Segmented<ThemePreference>
+            value={settings.themeOverride}
+            onChange={settings.setTheme}
+            options={[
+              { id: 'light', label: 'Light' },
+              { id: 'system', label: 'System' },
+              { id: 'dark', label: 'Dark' },
+            ]}
+          />
+        </Section>
 
-        <SectionLabel label="Appearance" palette={palette} spacing={spacing} />
-        <SegmentRow
-          label="Theme"
-          options={[
-            { label: "System", value: "system" },
-            { label: "Light", value: "light" },
-            { label: "Dark", value: "dark" },
-          ]}
-          selected={settings.themeOverride}
-          onSelect={(v) => settings.setTheme(v as ThemePreference)}
-          palette={palette}
-          spacing={spacing}
-          radius={radius}
-          rowStyle={rowStyle}
-        />
+        <Section title="Dictionary">
+          <Segmented<Dictionary>
+            value={settings.dictionary}
+            onChange={settings.setDictionary}
+            options={[
+              { id: 'twl06', label: 'TWL' },
+              { id: 'sowpods', label: 'SOWPODS' },
+            ]}
+          />
+        </Section>
 
-        <SectionLabel label="Boggle Zen Pro" palette={palette} spacing={spacing} />
-        {isPro ? (
-          <View style={rowStyle}>
-            <Text style={[text.body, { color: palette.ink }]}>Pro unlocked</Text>
-            <Text style={[text.small, { color: palette.sage }]}>✓</Text>
-          </View>
-        ) : (
-          <>
-            <Pressable
-              style={[rowStyle, { backgroundColor: palette.accent }]}
-              onPress={() => router.push("/paywall")}
-            >
-              <Text style={[text.bodyMedium, { color: "#fff" }]}>
-                Unlock everything forever
-              </Text>
-              <Text style={[text.small, { color: "rgba(255,255,255,0.7)" }]}>
-                $4.99
-              </Text>
-            </Pressable>
-            <Pressable
-              style={rowStyle}
-              onPress={() => void restorePurchases()}
-            >
-              <Text style={[text.body, { color: palette.ink }]}>
-                Restore purchase
-              </Text>
-            </Pressable>
-          </>
-        )}
+        <Section title={isPro ? 'Thank you' : 'Support the studio'}>
+          <Text
+            style={[
+              text.body,
+              { color: palette.inkSoft, marginBottom: spacing.md },
+            ]}
+          >
+            {isPro
+              ? 'You have Boggle Zen Pro. Every practice drill is open to you, and ads stay away.'
+              : 'One small purchase removes ads, unlocks all practice drills, and keeps me independent.'}
+          </Text>
+          {!isPro && (
+            <PrimaryButton
+              label="Boggle Zen Pro"
+              onPress={() => router.push('/paywall')}
+            />
+          )}
+          <Pressable
+            onPress={() => {
+              restorePurchases().catch(() => undefined);
+            }}
+            style={{ paddingVertical: spacing.sm, alignSelf: 'flex-start' }}
+          >
+            <Text style={[text.small, { color: palette.inkSoft }]}>
+              Restore purchases
+            </Text>
+          </Pressable>
+        </Section>
 
-        <SectionLabel label="Legal" palette={palette} spacing={spacing} />
-        <Pressable
-          style={rowStyle}
-          onPress={() => void Linking.openURL("https://bogglezen.app/privacy")}
-        >
-          <Text style={[text.body, { color: palette.ink }]}>Privacy Policy</Text>
-        </Pressable>
+        <View style={{ height: spacing.xxl }} />
+        <Text style={[text.small, { color: palette.inkFaint, textAlign: 'center' }]}>
+          Made with care.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function SectionLabel({
+function PrimaryButton({
   label,
-  palette,
-  spacing,
+  onPress,
 }: {
   label: string;
-  palette: ReturnType<typeof useTheme>["palette"];
-  spacing: ReturnType<typeof useTheme>["spacing"];
+  onPress: () => void;
 }) {
+  const { palette, spacing, radius } = useTheme();
   return (
-    <Text
-      style={[
-        text.caption,
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
         {
-          color: palette.inkFaint,
-          textTransform: "uppercase",
-          letterSpacing: 1.2,
-          marginBottom: spacing.sm,
-          marginTop: spacing.lg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: palette.sage,
+          borderRadius: radius.pill,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.xl,
+          alignSelf: 'flex-start',
+          opacity: pressed ? 0.9 : 1,
         },
       ]}
     >
-      {label}
-    </Text>
+      <Text style={[text.bodyMedium, { color: palette.surface }]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
-function SegmentRow({
-  label,
-  options,
-  selected,
-  onSelect,
-  palette,
-  spacing,
-  radius,
-  rowStyle,
+function Section({
+  title,
+  children,
 }: {
-  label: string;
-  options: { label: string; value: number | string }[];
-  selected: number | string;
-  onSelect: (v: number | string) => void;
-  palette: ReturnType<typeof useTheme>["palette"];
-  spacing: ReturnType<typeof useTheme>["spacing"];
-  radius: ReturnType<typeof useTheme>["radius"];
-  rowStyle: object;
+  title: string;
+  children: React.ReactNode;
 }) {
+  const { palette, spacing, radius } = useTheme();
   return (
-    <View style={rowStyle}>
-      <Text style={[text.body, { color: palette.ink }]}>{label}</Text>
-      <View style={{ flexDirection: "row", gap: spacing.xs }}>
-        {options.map((opt) => {
-          const active = opt.value === selected;
-          return (
-            <Pressable
-              key={String(opt.value)}
-              onPress={() => onSelect(opt.value)}
-              style={{
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.xs,
-                borderRadius: radius.pill,
-                backgroundColor: active ? palette.accent : palette.divider,
-              }}
-            >
-              <Text
-                style={[
-                  text.small,
-                  { color: active ? "#fff" : palette.inkSoft },
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+    <View style={{ marginBottom: spacing.xl }}>
+      <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+        {title.toUpperCase()}
+      </Text>
+      <View
+        style={[
+          styles.sectionBody,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.divider,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            marginTop: spacing.sm,
+          },
+        ]}
+      >
+        {children}
       </View>
     </View>
   );
 }
+
+function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const { palette, spacing } = useTheme();
+  return (
+    <View style={[styles.toggleRow, { paddingVertical: spacing.sm }]}>
+      <Text style={[text.bodyMedium, { color: palette.ink }]}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ true: palette.sage, false: palette.divider }}
+        thumbColor={palette.surfaceRaised}
+        ios_backgroundColor={palette.divider}
+      />
+    </View>
+  );
+}
+
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { id: T; label: string }[];
+}) {
+  const { palette, spacing, radius } = useTheme();
+  return (
+    <View style={[styles.segmented, { gap: spacing.sm }]}>
+      {options.map((opt) => {
+        const active = opt.id === value;
+        return (
+          <Pressable
+            key={opt.id}
+            onPress={() => onChange(opt.id)}
+            style={[
+              styles.segment,
+              {
+                flex: 1,
+                paddingVertical: spacing.sm + 2,
+                borderRadius: radius.pill,
+                backgroundColor: active ? palette.sage : 'transparent',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                text.bodyMedium,
+                {
+                  color: active ? palette.surface : palette.inkSoft,
+                  textAlign: 'center',
+                },
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  sectionBody: { borderWidth: StyleSheet.hairlineWidth },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  segmented: { flexDirection: 'row' },
+  segment: { alignItems: 'center' },
+  eyebrow: { textTransform: 'uppercase' },
+});

@@ -1,188 +1,246 @@
 /**
- * Paywall — one screen, one product, plain language.
- * No timers, no fake scarcity, no dark patterns.
+ * Paywall — a single, calm, honest screen.
+ *
+ * One product. One button. No urgency.
+ *
+ * Copy guidelines:
+ * - Talk like a person, not a marketer.
+ * - Never use "limited time," "save now," countdown timers, or scary language.
+ * - Mention what's included plainly; let the reader decide.
  */
-import React, { useEffect, useState } from "react";
+
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
-  ActivityIndicator,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { usePro } from "@/store/pro";
-import { useTheme } from "@/theme";
-import { text } from "@/theme/typography";
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+import { useTheme } from '@/theme';
+import { text } from '@/theme/typography';
 import {
+  fetchOffering,
   purchasePro,
   restorePurchases,
-  fetchOffering,
-} from "@/monetization/revenuecat";
-import { playSound } from "@/audio/soundpack";
+} from '@/monetization/revenuecat';
+import { playSound } from '@/audio/soundpack';
 
-const FEATURES = [
-  "All five training drills, always",
-  "Unlimited Solver Review on past boards",
-  "Daily curated board — a new challenge every morning",
-  "Custom colour themes",
-  "No ads, ever",
+const INCLUDED = [
+  'Removes all ads. Forever.',
+  'Every practice drill — prefix and suffix sprints, pattern spotting.',
+  'Unlimited Solver Review — rewatch any past board.',
+  'Daily curated board, hand-picked for clarity.',
+  'Future themes and quiet touches.',
 ];
 
-export default function PaywallScreen() {
-  const { palette, spacing, radius } = useTheme();
+export default function Paywall() {
   const router = useRouter();
-  const isPro = usePro();
-  const [priceLabel, setPriceLabel] = useState("$4.99");
-  const [loading, setLoading] = useState(false);
+  const { palette, spacing, radius } = useTheme();
+  const [priceLabel, setPriceLabel] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isPro) {
-      router.back();
-      return;
-    }
-    void fetchOffering().then((offering) => {
-      const pkg = offering?.availablePackages[0];
-      if (pkg) {
-        setPriceLabel(pkg.product.priceString);
-      }
-    });
-  }, [isPro]);
+    fetchOffering()
+      .then((offering) => {
+        const pkg = offering?.availablePackages[0];
+        const label = pkg?.product.priceString ?? null;
+        setPriceLabel(label);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const handlePurchase = async () => {
-    setLoading(true);
-    const success = await purchasePro();
-    setLoading(false);
-    if (success) {
-      playSound("pro_unlock");
-      router.back();
+    setPurchasing(true);
+    setError(null);
+    try {
+      const ok = await purchasePro();
+      if (ok) {
+        playSound('pro_unlock');
+        router.back();
+      } else {
+        setError('Purchase did not complete. No charge was made.');
+      }
+    } catch {
+      setError('Something went wrong. No charge was made.');
+    } finally {
+      setPurchasing(false);
     }
   };
 
   const handleRestore = async () => {
     setRestoring(true);
-    await restorePurchases();
-    setRestoring(false);
+    setError(null);
+    try {
+      const ok = await restorePurchases();
+      if (ok) {
+        playSound('pro_unlock');
+        router.back();
+      } else {
+        setError('No previous purchase found on this account.');
+      }
+    } catch {
+      setError('Restore did not complete. Please try again later.');
+    } finally {
+      setRestoring(false);
+    }
   };
 
   return (
-    <SafeAreaView
-      style={[styles.root, { backgroundColor: palette.background }]}
-    >
+    <SafeAreaView style={[styles.root, { backgroundColor: palette.background }]}>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.xl, paddingBottom: 48 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing.xl,
+          paddingBottom: spacing.xxl,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={{ alignSelf: "flex-end", padding: spacing.sm }}
-        >
-          <Text style={[text.small, { color: palette.inkFaint }]}>
-            Not now
-          </Text>
-        </Pressable>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="close" size={22} color={palette.inkSoft} />
+          </Pressable>
+        </View>
 
-        <View style={styles.header}>
+        <View style={{ marginTop: spacing.lg }}>
           <Text
-            style={[text.hero, { color: palette.ink, textAlign: "center" }]}
+            style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}
           >
-            Boggle Zen Pro
+            BOGGLE ZEN
+          </Text>
+          <Text
+            style={[text.hero, { color: palette.ink, marginTop: spacing.sm }]}
+          >
+            Pro
           </Text>
           <Text
             style={[
               text.body,
               {
                 color: palette.inkSoft,
-                textAlign: "center",
                 marginTop: spacing.md,
-                lineHeight: 24,
+                maxWidth: 360,
               },
             ]}
           >
-            Support a small studio and unlock everything — once, forever.
+            A small one-time purchase that supports a small studio. Pay once.
+            Keep it forever. No subscription, no renewals, no surprises.
           </Text>
         </View>
 
         <View
-          style={{
-            backgroundColor: palette.surface,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-            marginTop: spacing.xl,
-            gap: spacing.md,
-          }}
+          style={[
+            styles.includedCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.divider,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              marginTop: spacing.xl,
+            },
+          ]}
         >
-          {FEATURES.map((f) => (
-            <View key={f} style={styles.featureRow}>
+          {INCLUDED.map((line) => (
+            <View
+              key={line}
+              style={[styles.includedRow, { paddingVertical: spacing.xs }]}
+            >
+              <Ionicons
+                name="leaf-outline"
+                size={16}
+                color={palette.sage}
+                style={{ marginTop: 3 }}
+              />
               <Text
                 style={[
                   text.body,
-                  { color: palette.sage, marginRight: spacing.sm },
+                  {
+                    color: palette.ink,
+                    marginLeft: spacing.md,
+                    flex: 1,
+                  },
                 ]}
               >
-                ✦
-              </Text>
-              <Text style={[text.body, { color: palette.ink, flex: 1 }]}>
-                {f}
+                {line}
               </Text>
             </View>
           ))}
         </View>
 
-        <Pressable
-          style={[
-            styles.cta,
-            {
-              backgroundColor: palette.accent,
-              borderRadius: radius.pill,
-              paddingVertical: spacing.lg,
-              marginTop: spacing.xl,
-            },
-          ]}
-          onPress={() => void handlePurchase()}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text
-              style={[text.bodyMedium, { color: "#fff", letterSpacing: 0.5 }]}
-            >
-              Unlock for {priceLabel}
-            </Text>
-          )}
-        </Pressable>
+        {error && (
+          <Text
+            style={[
+              text.small,
+              {
+                color: palette.warn,
+                marginTop: spacing.md,
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {error}
+          </Text>
+        )}
 
-        <Pressable
-          style={{ marginTop: spacing.lg, alignItems: "center" }}
-          onPress={() => void handleRestore()}
-          disabled={restoring}
-        >
-          {restoring ? (
-            <ActivityIndicator color={palette.inkFaint} size="small" />
-          ) : (
-            <Text style={[text.small, { color: palette.inkFaint }]}>
-              Restore previous purchase
-            </Text>
-          )}
-        </Pressable>
+        <View style={{ marginTop: spacing.xl }}>
+          <Pressable
+            onPress={handlePurchase}
+            disabled={purchasing}
+            style={({ pressed }) => [
+              {
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: palette.sage,
+                borderRadius: radius.pill,
+                paddingVertical: spacing.md + 2,
+                opacity: pressed || purchasing ? 0.9 : 1,
+              },
+            ]}
+          >
+            {purchasing ? (
+              <ActivityIndicator color={palette.surface} />
+            ) : (
+              <Text style={[text.bodyMedium, { color: palette.surface }]}>
+                {priceLabel ? `Unlock for ${priceLabel}` : 'Unlock Boggle Zen Pro'}
+              </Text>
+            )}
+          </Pressable>
 
+          <Pressable
+            onPress={handleRestore}
+            disabled={restoring}
+            style={{
+              paddingVertical: spacing.md,
+              alignItems: 'center',
+              marginTop: spacing.xs,
+            }}
+          >
+            <Text style={[text.small, { color: palette.inkSoft }]}>
+              {restoring ? 'Checking…' : 'Restore a previous purchase'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={{ height: spacing.xl }} />
         <Text
           style={[
             text.small,
             {
               color: palette.inkFaint,
-              textAlign: "center",
-              marginTop: spacing.lg,
+              textAlign: 'center',
               lineHeight: 18,
             },
           ]}
         >
-          One-time purchase. No recurring charges. Restores across all your
-          devices.
+          Payment will be charged to your App Store or Google Play account.
+          One-time purchase. Restore anytime.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -191,7 +249,11 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { alignItems: "center", marginTop: 8 },
-  featureRow: { flexDirection: "row", alignItems: "flex-start" },
-  cta: { alignItems: "center" },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  includedCard: { borderWidth: StyleSheet.hairlineWidth },
+  includedRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  eyebrow: { textTransform: 'uppercase' },
 });

@@ -1,185 +1,183 @@
-/**
- * Practice screen — warm, never gamified drill selection.
- */
-import React from "react";
 import {
-  View,
-  Text,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { usePro } from "@/store/pro";
-import { useTheme } from "@/theme";
-import { text } from "@/theme/typography";
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 
-interface DrillRow {
+import { useTheme } from '@/theme';
+import { text } from '@/theme/typography';
+import { usePro } from '@/store/pro';
+
+type Drill = {
   id: string;
   title: string;
-  description: string;
-  proOnly: boolean;
-  route?: string;
-}
+  body: string;
+  free: boolean;
+  href: string | null;
+};
 
-const DRILLS: DrillRow[] = [
+const DRILLS: Drill[] = [
   {
-    id: "hotwords",
-    title: "Hot Words",
-    description: "Flashcards for high-value short words: QI, ZA, XU, AE…",
-    proOnly: false,
-    route: "/train/hotwords",
+    id: 'hotwords',
+    title: 'Hot words',
+    body: 'Flashcards of short, high-value words. Build instant recognition.',
+    free: true,
+    href: '/train/hotwords',
   },
   {
-    id: "prefix",
-    title: "Prefix Sprint",
-    description: "60 seconds to find every word starting with QU, ST, UN…",
-    proOnly: true,
+    id: 'prefix',
+    title: 'Prefix sprints',
+    body: 'Sixty calm seconds finding words starting with QU, ST, PR, UN, RE.',
+    free: false,
+    href: null,
   },
   {
-    id: "suffix",
-    title: "Suffix Sprint",
-    description: "60 seconds to find every word ending in -ING, -ER, -ED…",
-    proOnly: true,
+    id: 'suffix',
+    title: 'Suffix sprints',
+    body: 'The same exercise for -ING, -ER, -ED, -IEST. Tiny wins, big habits.',
+    free: false,
+    href: null,
   },
   {
-    id: "pattern",
-    title: "Pattern Spotting",
-    description: "A tile is highlighted — find every word that touches it.",
-    proOnly: true,
+    id: 'pattern',
+    title: 'Pattern spotting',
+    body: 'One tile is highlighted. Find every valid word that touches it.',
+    free: false,
+    href: null,
   },
   {
-    id: "review",
-    title: "Solver Review",
-    description:
-      "Watch optimal paths animate on a past board. The best way to improve.",
-    proOnly: false,
-    route: "/train/review",
+    id: 'review',
+    title: 'Solver review',
+    body: 'Replay a past board with the optimal paths drawn slowly. Pause anywhere.',
+    free: true,
+    href: '/train/review',
   },
 ];
 
 export default function TrainScreen() {
-  const { palette, spacing, radius } = useTheme();
-  const isPro = usePro();
+  const { palette, spacing } = useTheme();
   const router = useRouter();
+  const isPro = usePro();
 
   return (
-    <SafeAreaView
-      style={[styles.root, { backgroundColor: palette.background }]}
-    >
+    <SafeAreaView style={[styles.root, { backgroundColor: palette.background }]}>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.xl, paddingBottom: 60 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing.xxl,
+          paddingBottom: spacing.xxl,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[text.title, { color: palette.ink, marginBottom: 4 }]}>
-          Practice
-        </Text>
-        <Text
-          style={[
-            text.small,
-            { color: palette.inkFaint, marginBottom: spacing.xl },
-          ]}
-        >
-          Short, focused sessions to help you find more words in real games.
-        </Text>
-
-        {DRILLS.map((drill) => {
-          const locked = drill.proOnly && !isPro;
-          return (
-            <Pressable
-              key={drill.id}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: palette.surface,
-                  borderRadius: radius.lg,
-                  padding: spacing.lg,
-                  marginBottom: spacing.md,
-                  opacity: locked ? 0.6 : 1,
-                },
-              ]}
-              onPress={() => {
-                if (locked) {
-                  router.push("/paywall");
-                } else if (drill.route) {
-                  router.push(drill.route as Parameters<typeof router.push>[0]);
-                }
-              }}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={[text.bodyMedium, { color: palette.ink }]}>
-                  {drill.title}
-                </Text>
-                {locked && (
-                  <View
-                    style={[
-                      styles.proBadge,
-                      {
-                        backgroundColor: palette.accentSoft,
-                        borderRadius: radius.pill,
-                        paddingHorizontal: spacing.sm,
-                        paddingVertical: 2,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        text.caption,
-                        { color: palette.accent, letterSpacing: 0.8 },
-                      ]}
-                    >
-                      PRO
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={[text.small, { color: palette.inkFaint, marginTop: 4 }]}
-              >
-                {drill.description}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        {!isPro && (
-          <Pressable
-            onPress={() => router.push("/paywall")}
+        <View>
+          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+            PRACTICE
+          </Text>
+          <Text
+            style={[text.title, { color: palette.ink, marginTop: spacing.sm }]}
+          >
+            Small, gentle exercises
+          </Text>
+          <Text
             style={[
-              styles.proPrompt,
+              text.body,
               {
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: palette.accentSoft,
-                padding: spacing.lg,
+                color: palette.inkSoft,
                 marginTop: spacing.md,
+                maxWidth: 320,
               },
             ]}
           >
-            <Text style={[text.bodyMedium, { color: palette.accent }]}>
-              Unlock all drills →
-            </Text>
-            <Text
-              style={[text.small, { color: palette.inkFaint, marginTop: 4 }]}
-            >
-              One-time purchase. No subscription.
-            </Text>
-          </Pressable>
-        )}
+            A few minutes a day quietly improves what you see on the board.
+            Leave whenever you like.
+          </Text>
+        </View>
+
+        <View style={{ height: spacing.xl }} />
+
+        {DRILLS.map((drill) => (
+          <DrillCard
+            key={drill.id}
+            drill={drill}
+            isPro={isPro}
+            onPress={() => {
+              if (!drill.free && !isPro) {
+                router.push('/paywall');
+                return;
+              }
+              if (drill.href) {
+                router.push(drill.href as never);
+              }
+            }}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function DrillCard({
+  drill,
+  isPro,
+  onPress,
+}: {
+  drill: Drill;
+  isPro: boolean;
+  onPress: () => void;
+}) {
+  const { palette, spacing, radius } = useTheme();
+  const locked = !drill.free && !isPro;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.divider,
+          padding: spacing.lg,
+          marginBottom: spacing.md,
+          borderRadius: radius.lg,
+          opacity: pressed ? 0.9 : 1,
+        },
+      ]}
+    >
+      <View style={styles.cardTop}>
+        <Text style={[text.subtitle, { color: palette.ink }]}>
+          {drill.title}
+        </Text>
+        {locked && (
+          <Text
+            style={[text.caption, styles.eyebrow, { color: palette.accent }]}
+          >
+            PRO
+          </Text>
+        )}
+      </View>
+      <Text
+        style={[
+          text.body,
+          { color: palette.inkSoft, marginTop: spacing.sm },
+        ]}
+      >
+        {drill.body}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  card: {},
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  card: { borderWidth: StyleSheet.hairlineWidth },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  proBadge: {},
-  proPrompt: {},
+  eyebrow: { textTransform: 'uppercase' },
 });
