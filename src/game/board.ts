@@ -8,7 +8,7 @@ export interface Board {
   letters: string[];
 }
 
-function shuffle<T>(arr: T[]): T[] {
+export function shuffle<T>(arr: readonly T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -20,9 +20,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function rollBoard(size: 4 | 5): Board {
-  const dice = size === 4 ? [...DICE_4x4] : [...DICE_5x5];
-  const shuffled = shuffle(dice);
-  const letters = shuffled.map(rollFace);
+  const letters = shuffle(size === 4 ? DICE_4x4 : DICE_5x5).map(rollFace);
   return { size, letters };
 }
 

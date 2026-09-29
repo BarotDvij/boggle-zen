@@ -25,10 +25,10 @@ export default function ReviewScreen() {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
 
   const foundWords = game.foundWords;
-  const allSolutions = game.allSolutions ?? new Map();
-  const score = totalScore(foundWords.map((w: { word: string }) => w.word));
+  const allSolutions = game.allSolutions ?? new Map<string, number[][]>();
+  const score = totalScore(foundWords.map((w) => w.word));
   const totalPossible = allSolutions.size;
-  const foundSet = new Set(foundWords.map((w: { word: string }) => w.word));
+  const foundSet = new Set(foundWords.map((w) => w.word));
 
   const missedWords = [...allSolutions.keys()]
     .filter((w) => !foundSet.has(w))
@@ -53,7 +53,7 @@ export default function ReviewScreen() {
 
         {/* Found words */}
         {foundWords.length > 0 && (
-          <Section title="Your words" palette={palette} spacing={spacing} radius={radius}>
+          <Section title="Your words">
             <View style={styles.wordGrid}>
               {[...foundWords]
                 .sort((a, b) => b.score - a.score)
@@ -63,9 +63,6 @@ export default function ReviewScreen() {
                     word={fw.word}
                     score={fw.score}
                     dim={false}
-                    palette={palette}
-                    radius={radius}
-                    spacing={spacing}
                   />
                 ))}
             </View>
@@ -74,7 +71,7 @@ export default function ReviewScreen() {
 
         {/* Missed words */}
         {missedWords.length > 0 && (
-          <Section title="You missed" palette={palette} spacing={spacing} radius={radius}>
+          <Section title="You missed">
             <Text
               style={[
                 text.small,
@@ -90,9 +87,6 @@ export default function ReviewScreen() {
                   word={word}
                   score={scoreWord(word)}
                   dim
-                  palette={palette}
-                  radius={radius}
-                  spacing={spacing}
                   onPress={() =>
                     setHighlightedWord(highlightedWord === word ? null : word)
                   }
@@ -139,16 +133,11 @@ export default function ReviewScreen() {
 function Section({
   title,
   children,
-  palette,
-  spacing,
-  radius,
 }: {
   title: string;
   children: React.ReactNode;
-  palette: ReturnType<typeof useTheme>["palette"];
-  spacing: ReturnType<typeof useTheme>["spacing"];
-  radius: ReturnType<typeof useTheme>["radius"];
 }) {
+  const { palette, spacing, radius } = useTheme();
   return (
     <View
       style={{
@@ -163,7 +152,6 @@ function Section({
           text.caption,
           {
             color: palette.inkFaint,
-            textTransform: "uppercase",
             letterSpacing: 1.2,
             marginBottom: spacing.md,
           },
@@ -180,19 +168,14 @@ function WordChip({
   word,
   score,
   dim,
-  palette,
-  radius,
-  spacing,
   onPress,
 }: {
   word: string;
   score: number;
   dim: boolean;
-  palette: ReturnType<typeof useTheme>["palette"];
-  radius: ReturnType<typeof useTheme>["radius"];
-  spacing: ReturnType<typeof useTheme>["spacing"];
   onPress?: () => void;
 }) {
+  const { palette, spacing, radius } = useTheme();
   return (
     <Pressable
       onPress={onPress}

@@ -10,14 +10,12 @@ import { useRouter } from 'expo-router';
 
 import { useTheme } from '@/theme';
 import { text } from '@/theme/typography';
-import { usePro } from '@/store/pro';
 
 type Drill = {
   id: string;
   title: string;
   body: string;
-  free: boolean;
-  href: string | null;
+  href: string;
 };
 
 const DRILLS: Drill[] = [
@@ -25,35 +23,12 @@ const DRILLS: Drill[] = [
     id: 'hotwords',
     title: 'Hot words',
     body: 'Flashcards of short, high-value words. Build instant recognition.',
-    free: true,
     href: '/train/hotwords',
-  },
-  {
-    id: 'prefix',
-    title: 'Prefix sprints',
-    body: 'Sixty calm seconds finding words starting with QU, ST, PR, UN, RE.',
-    free: false,
-    href: null,
-  },
-  {
-    id: 'suffix',
-    title: 'Suffix sprints',
-    body: 'The same exercise for -ING, -ER, -ED, -IEST. Tiny wins, big habits.',
-    free: false,
-    href: null,
-  },
-  {
-    id: 'pattern',
-    title: 'Pattern spotting',
-    body: 'One tile is highlighted. Find every valid word that touches it.',
-    free: false,
-    href: null,
   },
   {
     id: 'review',
     title: 'Solver review',
     body: 'Replay a past board with the optimal paths drawn slowly. Pause anywhere.',
-    free: true,
     href: '/train/review',
   },
 ];
@@ -61,7 +36,6 @@ const DRILLS: Drill[] = [
 export default function TrainScreen() {
   const { palette, spacing } = useTheme();
   const router = useRouter();
-  const isPro = usePro();
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: palette.background }]}>
@@ -74,7 +48,7 @@ export default function TrainScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View>
-          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+          <Text style={[text.caption, { color: palette.inkFaint }]}>
             PRACTICE
           </Text>
           <Text
@@ -103,16 +77,7 @@ export default function TrainScreen() {
           <DrillCard
             key={drill.id}
             drill={drill}
-            isPro={isPro}
-            onPress={() => {
-              if (!drill.free && !isPro) {
-                router.push('/paywall');
-                return;
-              }
-              if (drill.href) {
-                router.push(drill.href as never);
-              }
-            }}
+            onPress={() => router.push(drill.href as never)}
           />
         ))}
       </ScrollView>
@@ -122,15 +87,12 @@ export default function TrainScreen() {
 
 function DrillCard({
   drill,
-  isPro,
   onPress,
 }: {
   drill: Drill;
-  isPro: boolean;
   onPress: () => void;
 }) {
   const { palette, spacing, radius } = useTheme();
-  const locked = !drill.free && !isPro;
 
   return (
     <Pressable
@@ -151,13 +113,6 @@ function DrillCard({
         <Text style={[text.subtitle, { color: palette.ink }]}>
           {drill.title}
         </Text>
-        {locked && (
-          <Text
-            style={[text.caption, styles.eyebrow, { color: palette.accent }]}
-          >
-            PRO
-          </Text>
-        )}
       </View>
       <Text
         style={[
@@ -179,5 +134,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  eyebrow: { textTransform: 'uppercase' },
 });

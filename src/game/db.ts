@@ -7,7 +7,7 @@ import { useProgressStore } from "@/store/progress";
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-export async function openDb(): Promise<SQLite.SQLiteDatabase> {
+async function openDb(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   db = await SQLite.openDatabaseAsync("bogglezen.db");
   await db.execAsync(`
@@ -55,27 +55,13 @@ export async function saveGame(record: Omit<GameRecord, "id">): Promise<void> {
 
 export async function loadRecentGames(limit = 30): Promise<GameRecord[]> {
   const database = await openDb();
-  const rows = await database.getAllAsync<{
-    id: number;
-    played_at: number;
-    board_size: number;
-    score: number;
-    words_found: number;
-    total_words: number;
-    best_word: string;
-    duration_sec: number;
-  }>(`SELECT * FROM games ORDER BY played_at DESC LIMIT ?`, [limit]);
-
-  return rows.map((r) => ({
-    id: r.id,
-    playedAt: r.played_at,
-    boardSize: r.board_size,
-    score: r.score,
-    wordsFound: r.words_found,
-    totalWords: r.total_words,
-    bestWord: r.best_word,
-    durationSec: r.duration_sec,
-  }));
+  return database.getAllAsync<GameRecord>(
+    `SELECT id, played_at AS playedAt, board_size AS boardSize, score,
+            words_found AS wordsFound, total_words AS totalWords,
+            best_word AS bestWord, duration_sec AS durationSec
+     FROM games ORDER BY played_at DESC LIMIT ?`,
+    [limit]
+  );
 }
 
 export async function loadStats(): Promise<{

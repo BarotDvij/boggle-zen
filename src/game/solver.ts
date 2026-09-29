@@ -24,9 +24,10 @@ export function solveBoard(
     const letter = (letters[index] ?? "").toUpperCase();
     const word = currentWord + letter;
 
-    if (!trie.hasPrefix(word)) return;
+    const node = trie.find(word);
+    if (!node) return;
 
-    if (word.length >= 3 && trie.isWord(word)) {
+    if (word.length >= 3 && node.isWord) {
       const existing = solutions.get(word);
       if (existing) {
         existing.push([...path, index]);
@@ -53,9 +54,3 @@ export function solveBoard(
   return solutions;
 }
 
-/**
- * Flatten solutions map to a word Set for O(1) lookup during play.
- */
-export function buildValidSet(solutions: Map<string, number[][]>): Set<string> {
-  return new Set(solutions.keys());
-}

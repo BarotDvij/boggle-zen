@@ -4,25 +4,7 @@
  */
 export type ColorScheme = "light" | "dark";
 
-export interface Palette {
-  background: string;
-  surface: string;
-  surfaceRaised: string;
-  ink: string;
-  inkSoft: string;
-  inkFaint: string;
-  divider: string;
-  sage: string;
-  sageSoft: string;
-  accent: string;
-  accentSoft: string;
-  warn: string;
-  success: string;
-  shadow: string;
-  scrim: string;
-}
-
-export const lightPalette: Palette = {
+export const lightPalette = {
   background: "#F4EFE6",
   surface: "#FBF7F0",
   surfaceRaised: "#FFFFFF",
@@ -39,6 +21,8 @@ export const lightPalette: Palette = {
   shadow: "rgba(43, 42, 40, 0.10)",
   scrim: "rgba(43, 42, 40, 0.45)",
 };
+
+export type Palette = typeof lightPalette;
 
 export const darkPalette: Palette = {
   background: "#1B1D22",

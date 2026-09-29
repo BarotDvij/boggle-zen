@@ -2,7 +2,7 @@
  * Hot Words drill — flashcard mode.
  * Shows a word on a mini board fragment, user taps to reveal hint + rating.
  */
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -14,17 +14,7 @@ import { useRouter } from "expo-router";
 import { useTheme } from "@/theme";
 import { text } from "@/theme/typography";
 import { HOT_WORDS, type HotWord } from "@/training/drills/hotwords";
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = a[i] as T;
-    a[i] = a[j] as T;
-    a[j] = tmp;
-  }
-  return a;
-}
+import { shuffle } from "@/game/board";
 
 export default function HotWordsScreen() {
   const { palette, spacing, radius } = useTheme();
@@ -36,14 +26,14 @@ export default function HotWordsScreen() {
   const current: HotWord | undefined = deck[index];
   const total = deck.length;
 
-  const next = useCallback(() => {
+  const next = () => {
     if (index + 1 >= total) {
       router.back();
       return;
     }
     setIndex((i) => i + 1);
     setRevealed(false);
-  }, [index, total]);
+  };
 
   if (!current) return null;
 
@@ -110,7 +100,7 @@ export default function HotWordsScreen() {
 
       {/* Actions */}
       {revealed && (
-        <View style={[styles.actions, { gap: spacing.md, paddingHorizontal: spacing.xl }]}>
+        <View style={[styles.actions, { paddingHorizontal: spacing.xl }]}>
           <Pressable
             style={[
               styles.actionBtn,
@@ -124,21 +114,6 @@ export default function HotWordsScreen() {
           >
             <Text style={[text.bodyMedium, { color: palette.sage }]}>
               Got it
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: palette.surface,
-                borderRadius: radius.pill,
-                paddingVertical: spacing.md,
-              },
-            ]}
-            onPress={next}
-          >
-            <Text style={[text.bodyMedium, { color: palette.inkSoft }]}>
-              Practice more
             </Text>
           </Pressable>
         </View>

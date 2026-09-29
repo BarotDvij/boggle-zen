@@ -25,10 +25,10 @@ import { WordTray } from '@/components/WordTray';
 import { FoundList } from '@/components/FoundList';
 import { rollBoard } from '@/game/board';
 import { loadDictionary } from '@/game/dictionary';
-import { solveBoard, buildValidSet } from '@/game/solver';
-import { scoreWord, totalScore } from '@/game/scoring';
+import { solveBoard } from '@/game/solver';
+import { totalScore } from '@/game/scoring';
 import { saveGame } from '@/game/db';
-import { useGameStore } from '@/store/game';
+import { useGameStore, type WordResult } from '@/store/game';
 import { useSettingsStore } from '@/store/settings';
 import { useProgressStore } from '@/store/progress';
 import { hapticSuccess } from '@/audio/haptics';
@@ -37,21 +37,19 @@ import { maybeShowInterstitial } from '@/monetization/ads';
 import { useTheme } from '@/theme';
 import { text } from '@/theme/typography';
 
-type LastResult = 'added' | 'duplicate' | 'invalid' | null;
+const ROUND_SECONDS = 180;
 
 export default function ActiveGame() {
   const { palette, spacing } = useTheme();
   const router = useRouter();
   const boardSize = useSettingsStore((s) => s.boardSize);
-  const roundSeconds = useSettingsStore((s) => s.roundSeconds);
 
   const game = useGameStore();
   const recordGame = useProgressStore((s) => s.recordGame);
 
   const [loading, setLoading] = useState(true);
-  const [remaining, setRemaining] = useState(roundSeconds);
-  const [currentWord, setCurrentWord] = useState('');
-  const [lastResult, setLastResult] = useState<LastResult>(null);
+  const [remaining, setRemaining] = useState(ROUND_SECONDS);
+  const [lastResult, setLastResult] = useState<WordResult | null>(null);
   const resultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ended = useRef(false);
 
@@ -60,22 +58,16 @@ export default function ActiveGame() {
     let cancelled = false;
 
     (async () => {
-      try {
-        const trie = await loadDictionary();
-        if (cancelled) return;
-        const board = rollBoard(boardSize);
-        const solutions = solveBoard(board, trie);
-        const valid = buildValidSet(solutions);
-        game.begin(board, roundSeconds, valid, solutions);
-        playSound('round_start');
-        setLoading(false);
-      } catch {
-        // If dictionary fails we still let them play with no validation —
-        // calmer than throwing a scary error.
-        const board = rollBoard(boardSize);
-        game.begin(board, roundSeconds, new Set(), new Map());
-        setLoading(false);
-      }
+      const board = rollBoard(boardSize);
+      // If dictionary fails we still let them play with no validation —
+      // calmer than throwing a scary error.
+      const solutions = await loadDictionary()
+        .then((trie) => solveBoard(board, trie))
+        .catch(() => new Map<string, number[][]>());
+      if (cancelled) return;
+      game.begin(board, ROUND_SECONDS, solutions);
+      playSound('round_start');
+      setLoading(false);
     })();
 
     return () => {
@@ -103,7 +95,7 @@ export default function ActiveGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
-  const flashResult = useCallback((result: LastResult) => {
+  const flashResult = useCallback((result: WordResult) => {
     setLastResult(result);
     if (resultTimer.current) clearTimeout(resultTimer.current);
     resultTimer.current = setTimeout(() => setLastResult(null), 900);
@@ -111,20 +103,14 @@ export default function ActiveGame() {
 
   const handleWordAttempt = useCallback(
     (word: string, path: number[]) => {
-      const upper = word.toUpperCase();
-      setCurrentWord('');
-      const status = game.addFound(upper, path);
+      const status = game.addFound(word, path);
       if (status === 'added') {
         hapticSuccess();
         playSound('word_accept');
-        flashResult('added');
-      } else if (status === 'duplicate') {
-        playSound('word_reject');
-        flashResult('duplicate');
       } else {
         playSound('word_reject');
-        flashResult('invalid');
       }
+      flashResult(status);
     },
     [flashResult, game]
   );
@@ -141,7 +127,6 @@ export default function ActiveGame() {
     );
 
     playSound('round_end');
-    state.end();
     recordGame(score, longest);
 
     // Persist quietly. Non-fatal if it fails.
@@ -211,12 +196,12 @@ export default function ActiveGame() {
       </View>
 
       <View style={styles.middle}>
-        <WordTray currentWord={currentWord} lastResult={lastResult} />
+        <WordTray lastResult={lastResult} />
         <View style={{ height: spacing.lg }} />
         <Board
           letters={board.letters}
           size={board.size}
-          onWordAttempt={(word, path) => handleWordAttempt(word, path)}
+          onWordAttempt={handleWordAttempt}
         />
       </View>
 

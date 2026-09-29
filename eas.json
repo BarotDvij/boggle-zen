@@ -9,18 +9,12 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
-      },
-      "env": {
-        "APP_VERSION": "0.1.0"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "APP_VERSION": "0.1.0"
       }
     },
     "production": {
@@ -30,8 +24,7 @@
       },
       "android": {
         "buildType": "apk"
-      },
-      "env": {}
+      }
     }
   },
   "submit": {

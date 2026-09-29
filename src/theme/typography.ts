@@ -12,13 +12,6 @@ export const fonts = {
   bodySemi: "Inter_600SemiBold",
 } as const;
 
-export interface TextStyle {
-  fontFamily: string;
-  fontSize: number;
-  lineHeight: number;
-  letterSpacing: number;
-}
-
 export const text = {
   hero: {
     fontFamily: fonts.display,
@@ -61,6 +54,7 @@ export const text = {
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 1.4,
+    textTransform: "uppercase",
   },
   tile: {
     fontFamily: fonts.displaySemi,
@@ -74,4 +68,4 @@ export const text = {
     lineHeight: 26,
     letterSpacing: 0,
   },
-} as const satisfies Record<string, TextStyle>;
+} as const;

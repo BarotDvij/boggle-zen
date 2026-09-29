@@ -1,10 +1,10 @@
 /**
  * Timer — a breathing ring that shows remaining time.
- * Uses @shopify/react-native-skia for the arc; Reanimated for the breath effect.
+ * Uses react-native-svg for the arc; Reanimated for the breath effect.
  */
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Canvas, Path, Skia } from "@shopify/react-native-skia";
+import Svg, { Circle } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,7 +37,8 @@ export function Timer({ totalSeconds, remainingSeconds, size = 72 }: TimerProps)
   }, []);
 
   const progress = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
-  const sweepAngle = progress * 360;
+  const r = size / 2 - STROKE;
+  const circumference = 2 * Math.PI * r;
 
   const animStyle = useAnimatedStyle(() => {
     const scale = interpolate(breath.value, [0, 1], [1, 1.04]);
@@ -53,45 +54,30 @@ export function Timer({ totalSeconds, remainingSeconds, size = 72 }: TimerProps)
   const trackColor = palette.divider;
   const arcColor = isLow ? palette.warn : palette.sage;
 
-  const trackPath = useMemo(() => {
-    const p = Skia.Path.Make();
-    p.addOval({
-      x: STROKE,
-      y: STROKE,
-      width: size - STROKE * 2,
-      height: size - STROKE * 2,
-    });
-    return p;
-  }, [size]);
-
-  const arcPath = useMemo(() => {
-    const p = Skia.Path.Make();
-    p.addArc(
-      { x: STROKE, y: STROKE, width: size - STROKE * 2, height: size - STROKE * 2 },
-      -90,
-      sweepAngle
-    );
-    return p;
-  }, [sweepAngle, size]);
-
   return (
     <Animated.View style={[styles.container, { width: size, height: size }, animStyle]}>
-      <Canvas style={{ width: size, height: size, position: "absolute" }}>
-        <Path
-          path={trackPath}
-          color={trackColor}
-          style="stroke"
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={trackColor}
           strokeWidth={STROKE}
-          strokeCap="round"
+          fill="none"
         />
-        <Path
-          path={arcPath}
-          color={arcColor}
-          style="stroke"
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={arcColor}
           strokeWidth={STROKE}
-          strokeCap="round"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - progress)}
+          fill="none"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
-      </Canvas>
+      </Svg>
       <Text
         style={[
           text.small,

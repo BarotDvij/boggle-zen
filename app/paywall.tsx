@@ -33,7 +33,6 @@ import { playSound } from '@/audio/soundpack';
 
 const INCLUDED = [
   'Removes all ads. Forever.',
-  'Every practice drill — prefix and suffix sprints, pattern spotting.',
   'Unlimited Solver Review — rewatch any past board.',
   'Daily curated board, hand-picked for clarity.',
   'Future themes and quiet touches.',
@@ -111,7 +110,7 @@ export default function Paywall() {
 
         <View style={{ marginTop: spacing.lg }}>
           <Text
-            style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}
+            style={[text.caption, { color: palette.inkFaint }]}
           >
             BOGGLE ZEN
           </Text>
@@ -255,5 +254,4 @@ const styles = StyleSheet.create({
   },
   includedCard: { borderWidth: StyleSheet.hairlineWidth },
   includedRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  eyebrow: { textTransform: 'uppercase' },
 });

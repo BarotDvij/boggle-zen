@@ -37,7 +37,3 @@ export async function loadDictionary(): Promise<Trie> {
   cachedTrie = trie;
   return trie;
 }
-
-export function resetDictionaryCache(): void {
-  cachedTrie = null;
-}

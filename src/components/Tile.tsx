@@ -11,7 +11,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "@/theme";
 import { text } from "@/theme/typography";
-import { spring } from "@/theme/motion";
 
 interface TileProps {
   letter: string;
@@ -27,7 +26,7 @@ export function Tile({ letter, selected, inPath, size }: TileProps) {
   useEffect(() => {
     scale.value = withSpring(
       selected ? 0.93 : inPath ? 0.97 : 1,
-      spring.responsive
+      { damping: 16, stiffness: 220, mass: 0.9 }
     );
   }, [selected, inPath]);
 

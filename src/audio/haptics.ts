@@ -20,8 +20,3 @@ export function hapticSuccess(): void {
     () => {}
   );
 }
-
-export function hapticSelection(): void {
-  if (!ifEnabled()) return;
-  Haptics.selectionAsync().catch(() => {});
-}

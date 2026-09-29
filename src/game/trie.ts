@@ -1,8 +1,8 @@
 /**
  * Prefix trie for fast dictionary lookups.
- * Supports isWord() and hasPrefix() for the solver.
+ * find() returns the node for a prefix; its isWord flag says whether it's a full word.
  */
-export class TrieNode {
+class TrieNode {
   children: Map<string, TrieNode> = new Map();
   isWord = false;
 }
@@ -23,39 +23,12 @@ export class Trie {
     node.isWord = true;
   }
 
-  hasPrefix(prefix: string): boolean {
-    let node = this.root;
+  find(prefix: string): TrieNode | undefined {
+    let node: TrieNode | undefined = this.root;
     for (const ch of prefix) {
-      const child = node.children.get(ch);
-      if (!child) return false;
-      node = child;
+      node = node.children.get(ch);
+      if (!node) return undefined;
     }
-    return true;
-  }
-
-  isWord(word: string): boolean {
-    let node = this.root;
-    for (const ch of word) {
-      const child = node.children.get(ch);
-      if (!child) return false;
-      node = child;
-    }
-    return node.isWord;
-  }
-
-  /**
-   * Returns a Set of all words for fast O(1) has checks,
-   * plus retains the trie for prefix checks.
-   */
-  buildWordSet(): Set<string> {
-    const words = new Set<string>();
-    const traverse = (node: TrieNode, prefix: string) => {
-      if (node.isWord) words.add(prefix);
-      for (const [ch, child] of node.children) {
-        traverse(child, prefix + ch);
-      }
-    };
-    traverse(this.root, "");
-    return words;
+    return node;
   }
 }

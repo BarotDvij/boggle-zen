@@ -15,22 +15,18 @@ import {
   Fraunces_600SemiBold,
 } from "@expo-google-fonts/fraunces";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { initRevenueCat } from "@/monetization/revenuecat";
 import { requestConsent } from "@/monetization/consent";
 import { preloadInterstitial } from "@/monetization/ads";
 import { loadStats } from "@/game/db";
 import { loadDictionary } from "@/game/dictionary";
-import { useSettingsStore } from "@/store/settings";
+import { useTheme } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const themeOverride = useSettingsStore((s) => s.themeOverride);
-  const effectiveScheme =
-    themeOverride === "system" ? colorScheme : themeOverride;
+  const { scheme } = useTheme();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -64,7 +60,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style={effectiveScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen

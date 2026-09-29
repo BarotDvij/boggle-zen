@@ -1,31 +1,22 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
-const IS_DEV = process.env.APP_VARIANT === 'development';
-
-const BUNDLE_ID = IS_DEV ? 'com.boggle.zen.dev' : 'com.boggle.zen';
+const BUNDLE_ID = 'com.boggle.zen';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? 'Boggle Zen (Dev)' : 'Boggle Zen',
+  name: 'Boggle Zen',
   slug: 'boggle-zen',
   scheme: 'bogglezen',
   version: '0.1.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID,
     buildNumber: '1',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
-      NSUserTrackingUsageDescription:
-        'This lets us show you fewer, more relevant ads. Tracking is never required to play.',
-      SKAdNetworkItems: [
-        // Standard AdMob SKAdNetwork identifiers (kept minimal here; expand at submit time)
-        { SKAdNetworkIdentifier: 'cstr6suwn9.skadnetwork' },
-      ],
     },
     privacyManifests: {
       NSPrivacyAccessedAPITypes: [
@@ -51,7 +42,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
-    'expo-font',
     'expo-secure-store',
     'expo-tracking-transparency',
     [
@@ -69,6 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         iosAppId: 'ca-app-pub-3940256099942544~1458002511',
         userTrackingUsageDescription:
           'This lets us show you fewer, more relevant ads. Tracking is never required to play.',
+        // Standard AdMob SKAdNetwork identifier (kept minimal here; expand at submit time)
         skAdNetworkItems: ['cstr6suwn9.skadnetwork'],
       },
     ],
@@ -80,17 +71,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: '00000000-0000-0000-0000-000000000000',
     },
-    revenueCat: {
+    revenuecat: {
       iosKey: process.env.EXPO_PUBLIC_RC_IOS_KEY ?? '',
       androidKey: process.env.EXPO_PUBLIC_RC_ANDROID_KEY ?? '',
-    },
-    admob: {
-      iosInterstitial:
-        process.env.EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL ??
-        'ca-app-pub-3940256099942544/4411468910',
-      androidInterstitial:
-        process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL ??
-        'ca-app-pub-3940256099942544/1033173712',
     },
   },
 });

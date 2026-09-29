@@ -38,7 +38,7 @@ export default function ReflectScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View>
-          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+          <Text style={[text.caption, { color: palette.inkFaint }]}>
             REFLECT
           </Text>
           <Text
@@ -110,8 +110,8 @@ function Tile({
         },
       ]}
     >
-      <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
-        {title.toUpperCase()}
+      <Text style={[text.caption, { color: palette.inkFaint }]}>
+        {title}
       </Text>
       <Text
         style={[text.hero, { color: palette.ink, marginTop: spacing.sm }]}
@@ -133,5 +133,4 @@ function Tile({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tile: { borderWidth: StyleSheet.hairlineWidth },
-  eyebrow: { textTransform: 'uppercase' },
 });

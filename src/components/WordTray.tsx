@@ -1,17 +1,13 @@
 /**
- * WordTray — display of the word currently being formed or last result.
+ * WordTray — shows the result of the last word attempt.
  */
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/theme";
 import { text } from "@/theme/typography";
+import type { WordResult } from "@/store/game";
 
-interface WordTrayProps {
-  currentWord: string;
-  lastResult?: "added" | "duplicate" | "invalid" | null;
-}
-
-export function WordTray({ currentWord, lastResult }: WordTrayProps) {
+export function WordTray({ lastResult }: { lastResult: WordResult | null }) {
   const { palette, radius, spacing } = useTheme();
 
   const color =
@@ -22,9 +18,7 @@ export function WordTray({ currentWord, lastResult }: WordTrayProps) {
       : palette.ink;
 
   const label =
-    currentWord.length > 0
-      ? currentWord.toUpperCase()
-      : lastResult === "added"
+    lastResult === "added"
       ? "Nice!"
       : lastResult === "duplicate"
       ? "Already found"

@@ -12,12 +12,7 @@ import MobileAds, {
   AdsConsentStatus,
 } from "react-native-google-mobile-ads";
 
-let consentRequested = false;
-
 export async function requestConsent(): Promise<void> {
-  if (consentRequested) return;
-  consentRequested = true;
-
   try {
     if (Platform.OS === "ios") {
       // Request ATT permission on iOS 14.5+.

@@ -3,7 +3,7 @@
  */
 import { useColorScheme } from "react-native";
 import { useSettingsStore } from "@/store/settings";
-import { paletteFor, type ColorScheme, type Palette } from "./palette";
+import { paletteFor, type ColorScheme } from "./palette";
 
 export const spacing = {
   xs: 4,
@@ -23,14 +23,7 @@ export const radius = {
   pill: 999,
 } as const;
 
-export interface Theme {
-  scheme: ColorScheme;
-  palette: Palette;
-  spacing: typeof spacing;
-  radius: typeof radius;
-}
-
-export function useTheme(): Theme {
+export function useTheme() {
   const systemScheme = useColorScheme() ?? "light";
   const override = useSettingsStore((s) => s.themeOverride);
   const scheme: ColorScheme =
@@ -45,4 +38,3 @@ export function useTheme(): Theme {
 
 export * from "./palette";
 export * from "./typography";
-export * from "./motion";

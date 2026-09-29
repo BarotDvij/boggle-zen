@@ -14,7 +14,7 @@ import {
 import { useProStore } from "@/store/pro";
 import { useProgressStore } from "@/store/progress";
 
-export const AD_FREQUENCY = 4;
+const AD_FREQUENCY = 4;
 
 const INTERSTITIAL_ID = __DEV__
   ? TestIds.INTERSTITIAL

@@ -5,6 +5,7 @@
  */
 import Purchases, {
   LOG_LEVEL,
+  type CustomerInfo,
   type PurchasesOffering,
 } from "react-native-purchases";
 import { Platform } from "react-native";
@@ -16,15 +17,18 @@ const RC_IOS_KEY: string =
 const RC_ANDROID_KEY: string =
   Constants.expoConfig?.extra?.revenuecat?.androidKey ?? "";
 
-export const PRO_ENTITLEMENT = "pro";
+const PRO_ENTITLEMENT = "pro";
+
+function syncPro(info: CustomerInfo): boolean {
+  const isPro = info.entitlements.active[PRO_ENTITLEMENT]?.isActive === true;
+  useProStore.getState().setPro(isPro);
+  return isPro;
+}
 
 export async function initRevenueCat(): Promise<void> {
   const apiKey = Platform.OS === "ios" ? RC_IOS_KEY : RC_ANDROID_KEY;
-  if (!apiKey) {
-    // Keys not yet configured — run in free mode silently.
-    useProStore.getState().markHydrated();
-    return;
-  }
+  // Keys not yet configured — run in free mode silently.
+  if (!apiKey) return;
 
   if (__DEV__) {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
@@ -33,22 +37,13 @@ export async function initRevenueCat(): Promise<void> {
   Purchases.configure({ apiKey });
 
   try {
-    const info = await Purchases.getCustomerInfo();
-    const isPro =
-      info.entitlements.active[PRO_ENTITLEMENT]?.isActive === true;
-    useProStore.getState().setPro(isPro);
+    syncPro(await Purchases.getCustomerInfo());
   } catch {
     // Offline or first launch — fail silently, default is free.
-  } finally {
-    useProStore.getState().markHydrated();
   }
 
   // Keep store updated when purchase state changes elsewhere.
-  Purchases.addCustomerInfoUpdateListener((info) => {
-    const isPro =
-      info.entitlements.active[PRO_ENTITLEMENT]?.isActive === true;
-    useProStore.getState().setPro(isPro);
-  });
+  Purchases.addCustomerInfoUpdateListener(syncPro);
 }
 
 export async function fetchOffering(): Promise<PurchasesOffering | null> {
@@ -66,10 +61,7 @@ export async function purchasePro(): Promise<boolean> {
     const pkg = offering?.availablePackages[0];
     if (!pkg) return false;
     const { customerInfo } = await Purchases.purchasePackage(pkg);
-    const isPro =
-      customerInfo.entitlements.active[PRO_ENTITLEMENT]?.isActive === true;
-    useProStore.getState().setPro(isPro);
-    return isPro;
+    return syncPro(customerInfo);
   } catch {
     return false;
   }
@@ -77,11 +69,7 @@ export async function purchasePro(): Promise<boolean> {
 
 export async function restorePurchases(): Promise<boolean> {
   try {
-    const info = await Purchases.restorePurchases();
-    const isPro =
-      info.entitlements.active[PRO_ENTITLEMENT]?.isActive === true;
-    useProStore.getState().setPro(isPro);
-    return isPro;
+    return syncPro(await Purchases.restorePurchases());
   } catch {
     return false;
   }

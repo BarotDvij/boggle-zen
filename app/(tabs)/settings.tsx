@@ -11,11 +11,7 @@ import { useRouter } from 'expo-router';
 
 import { useTheme } from '@/theme';
 import { text } from '@/theme/typography';
-import {
-  useSettingsStore,
-  type ThemePreference,
-  type Dictionary,
-} from '@/store/settings';
+import { useSettingsStore, type ThemePreference } from '@/store/settings';
 import { usePro } from '@/store/pro';
 import { restorePurchases } from '@/monetization/revenuecat';
 
@@ -36,7 +32,7 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View>
-          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+          <Text style={[text.caption, { color: palette.inkFaint }]}>
             SETTINGS
           </Text>
           <Text
@@ -52,34 +48,23 @@ export default function SettingsScreen() {
           <Toggle
             label="Sound"
             value={settings.soundEnabled}
-            onChange={settings.setSound}
+            onChange={(v) => useSettingsStore.setState({ soundEnabled: v })}
           />
           <Toggle
             label="Haptics"
             value={settings.hapticsEnabled}
-            onChange={settings.setHaptics}
+            onChange={(v) => useSettingsStore.setState({ hapticsEnabled: v })}
           />
         </Section>
 
         <Section title="Appearance">
           <Segmented<ThemePreference>
             value={settings.themeOverride}
-            onChange={settings.setTheme}
+            onChange={(v) => useSettingsStore.setState({ themeOverride: v })}
             options={[
               { id: 'light', label: 'Light' },
               { id: 'system', label: 'System' },
               { id: 'dark', label: 'Dark' },
-            ]}
-          />
-        </Section>
-
-        <Section title="Dictionary">
-          <Segmented<Dictionary>
-            value={settings.dictionary}
-            onChange={settings.setDictionary}
-            options={[
-              { id: 'twl06', label: 'TWL' },
-              { id: 'sowpods', label: 'SOWPODS' },
             ]}
           />
         </Section>
@@ -92,8 +77,8 @@ export default function SettingsScreen() {
             ]}
           >
             {isPro
-              ? 'You have Boggle Zen Pro. Every practice drill is open to you, and ads stay away.'
-              : 'One small purchase removes ads, unlocks all practice drills, and keeps me independent.'}
+              ? 'You have Boggle Zen Pro. Every practice tool is open to you, and ads stay away.'
+              : 'One small purchase removes ads, unlocks unlimited Solver Review, and keeps me independent.'}
           </Text>
           {!isPro && (
             <PrimaryButton
@@ -163,8 +148,8 @@ function Section({
   const { palette, spacing, radius } = useTheme();
   return (
     <View style={{ marginBottom: spacing.xl }}>
-      <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
-        {title.toUpperCase()}
+      <Text style={[text.caption, { color: palette.inkFaint }]}>
+        {title}
       </Text>
       <View
         style={[
@@ -264,5 +249,4 @@ const styles = StyleSheet.create({
   },
   segmented: { flexDirection: 'row' },
   segment: { alignItems: 'center' },
-  eyebrow: { textTransform: 'uppercase' },
 });

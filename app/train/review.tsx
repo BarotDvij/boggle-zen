@@ -2,7 +2,7 @@
  * Solver Review — animates optimal word paths on a past board.
  * The single most effective training tool: you watch where you missed words.
  */
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -32,7 +32,13 @@ export default function SolverReviewScreen() {
   const allSolutions = game.allSolutions;
 
   const [canUse, setCanUse] = useState<boolean | null>(null);
-  const [wordList, setWordList] = useState<string[]>([]);
+  const wordList = useMemo(
+    () =>
+      [...(allSolutions?.keys() ?? [])].sort(
+        (a, b) => scoreWord(b) - scoreWord(a)
+      ),
+    [allSolutions]
+  );
   const [wordIndex, setWordIndex] = useState(0);
   const [pathStep, setPathStep] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,14 +50,6 @@ export default function SolverReviewScreen() {
       if (ok) markSolverReviewUsedToday();
     });
   }, [isPro]);
-
-  useEffect(() => {
-    if (!allSolutions) return;
-    const sorted = [...allSolutions.keys()].sort(
-      (a, b) => scoreWord(b) - scoreWord(a)
-    );
-    setWordList(sorted);
-  }, [allSolutions]);
 
   const currentWord = wordList[wordIndex];
   const currentPaths = currentWord

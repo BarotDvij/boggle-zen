@@ -16,7 +16,6 @@ export default function PlayHome() {
   const router = useRouter();
   const { palette, spacing, radius } = useTheme();
   const boardSize = useSettingsStore((s) => s.boardSize);
-  const setBoardSize = useSettingsStore((s) => s.setBoardSize);
 
   return (
     <SafeAreaView
@@ -29,7 +28,7 @@ export default function PlayHome() {
         ]}
       >
         <Animated.View entering={FadeIn.duration(600)}>
-          <Text style={[text.caption, styles.eyebrow, { color: palette.inkFaint }]}>
+          <Text style={[text.caption, { color: palette.inkFaint }]}>
             A QUIET ROUND OF
           </Text>
           <Text
@@ -60,12 +59,12 @@ export default function PlayHome() {
           <SizeChip
             label="Classic · 4×4"
             active={boardSize === 4}
-            onPress={() => setBoardSize(4)}
+            onPress={() => useSettingsStore.setState({ boardSize: 4 })}
           />
           <SizeChip
             label="Big · 5×5"
             active={boardSize === 5}
-            onPress={() => setBoardSize(5)}
+            onPress={() => useSettingsStore.setState({ boardSize: 5 })}
           />
         </View>
 
@@ -149,5 +148,4 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   sizeRow: { flexDirection: 'row' },
   primary: { alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { textTransform: 'uppercase' },
 });
